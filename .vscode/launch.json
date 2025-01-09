@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Launch",
+            "program": "${workspaceFolder}/target/debug/khepri",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--no-default-features"
+                ]
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "CARGO_MANIFEST_DIR": "${workspaceFolder}",
+            }
+        },
+    ]
+}
