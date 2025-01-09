@@ -4,6 +4,7 @@
     naersk.url = "github:nix-community/naersk";
     rust-overlay.url = "github:oxalica/rust-overlay";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    git-hooks-nix.url = "github:cachix/git-hooks.nix";
   };
 
   outputs = {
@@ -12,6 +13,7 @@
     naersk,
     nixpkgs,
     rust-overlay,
+    git-hooks-nix,
   }:
     flake-utils.lib.eachDefaultSystem (
       system: let
@@ -20,6 +22,15 @@
           inherit system overlays;
         };
         naersk' = pkgs.callPackage naersk {};
+        pre-commit-check = git-hooks-nix.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            alejandra.enable = true;
+            commitizen.enable = true;
+            flake-checker.enable = true;
+            rustfmt.enable = true;
+          };
+        };
         buildInputs = with pkgs; [
           vulkan-loader
           xorg.libXcursor
@@ -31,21 +42,11 @@
         ];
         nativeBuildInputs = with pkgs; [
           libxkbcommon
-
-          (
-            rust-bin.stable."1.76.0".default.override
-            {
-              extensions = ["rust-src" "clippy"];
-            }
-          )
-
-          /*
           (rust-bin.selectLatestNightlyWith
             (toolchain:
               toolchain.default.override {
                 extensions = ["rust-src" "clippy"];
               }))
-          */
         ];
         all_deps = with pkgs;
           [
@@ -71,10 +72,14 @@
           };
         };
 
+        checks.default = pre-commit-check;
+
         # For `nix develop`:
         devShell = pkgs.mkShell {
           nativeBuildInputs = all_deps;
+          buildInputs = pre-commit-check.enabledPackages;
           shellHook = ''
+            ${pre-commit-check.shellHook}
             export CARGO_MANIFEST_DIR=$(pwd)
             export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${pkgs.lib.makeLibraryPath all_deps}"
           '';
