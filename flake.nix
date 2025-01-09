@@ -59,11 +59,11 @@
           ++ nativeBuildInputs;
       in rec {
         # For `nix build` & `nix run`:
-        defaultPackage = packages.bevy_template;
         packages = {
-          bevy_template = naersk'.buildPackage {
+          khepri = naersk'.buildPackage {
             inherit buildInputs nativeBuildInputs;
             src = ./.;
+            # binary is already copied to $out/bin/
             postInstall = ''
               cp -r assets $out/bin/
             '';
@@ -71,6 +71,16 @@
             cargoBuildOptions = x: x ++ ["--no-default-features"];
           };
         };
+
+        apps.default = let
+          drv = packages.khepri;
+          # Cargo output binary will not be ${pname}-${version}, rather only ${name}
+          exeName = pkgs.lib.strings.removeSuffix ("-" + drv.version) drv.name;
+        in
+          flake-utils.lib.mkApp {
+            inherit drv;
+            exePath = "/bin/${exeName}";
+          };
 
         checks.default = pre-commit-check;
 
